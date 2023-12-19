@@ -10,6 +10,8 @@ import textwrap
 from urllib.parse import urlparse
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
+import importlib
+import datetime
 
 
 # Function to determine if a string is a valid URL
@@ -63,8 +65,30 @@ def process_template_arguments(prompt, template_args):
     return prompt
 
 
+def create_chat_banner(service_name, chat_file):
+    """Generate a banner for the chat session."""
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    banner_lines = [
+        "==========================================================",
+        f"      Chat Session with {service_name}",
+        "==========================================================",
+        f"Session Time: {current_time}",
+    ]
+
+    if chat_file:
+        banner_lines.append(f"Chat File: {chat_file}")
+
+    banner_lines.append("Type 'exit', 'quit', or 'q' to end the chat session.")
+    banner_lines.append("==========================================================\n")
+
+    return "\n".join(banner_lines)
+
+
 # Function to handle interactive chat
 def handle_interactive_chat(service_name, chat_file, initial_prompt):
+    # Print the chat session banner
+    print(create_chat_banner(service_name, chat_file))
+
     session = PromptSession(history=FileHistory(chat_file) if chat_file else None)
 
     chat_history = []
@@ -72,6 +96,11 @@ def handle_interactive_chat(service_name, chat_file, initial_prompt):
         if os.path.exists(chat_file):
             with open(chat_file, "r") as file:
                 chat_history = json.load(file)
+
+            # Display existing chat history
+            for entry in chat_history:
+                print(f"You: {entry['prompt']}")
+                print(f"{service_name}: {entry['response']}")
         else:
             print(f"Chat file '{chat_file}' not found. A new file will be created.")
 
@@ -80,14 +109,16 @@ def handle_interactive_chat(service_name, chat_file, initial_prompt):
         # Placeholder for AI interaction code
         chat_history.append({"prompt": initial_prompt, "response": "AI response here"})
 
+    plugin = load_plugin(service_name)
     while True:
         try:
             user_input = session.prompt("> ")
             if user_input.lower() in ["exit", "quit", "q"]:
                 break
 
-            # Placeholder for AI interaction code
-            ai_response = "AI response to: " + user_input
+            ai_response = plugin.process_interactive_chat(
+                service_name, user_input, chat_history
+            )
             chat_history.append({"prompt": user_input, "response": ai_response})
             print(ai_response)
         except KeyboardInterrupt:
@@ -104,9 +135,21 @@ def handle_interactive_chat(service_name, chat_file, initial_prompt):
 
 # Function to handle single prompt interaction
 def handle_single_prompt(service_name, prompt):
-    # Placeholder for AI interaction code
-    # Replace the following line with AI service interaction code
-    return f"{service_name} response to: {prompt}"
+    plugin = load_plugin(service_name)
+
+    return plugin.process_single_prompt(service_name, prompt)
+
+
+def load_plugin(service_name):
+    try:
+        plugin = importlib.import_module(f"plugins.{service_name}")
+        assert hasattr(plugin, "process_single_prompt")
+        assert hasattr(plugin, "process_interactive_chat")
+        return plugin
+    except (ImportError, AssertionError):
+        raise ImportError(
+            f"Plugin for {service_name} not found or does not conform to the interface."
+        )
 
 
 # Define the main CLI group with examples
@@ -189,12 +232,12 @@ def openai(prompt, model, chat, template_args):
             initial_prompt = read_content_from_source(prompt)
             initial_prompt = process_template_arguments(initial_prompt, template_args)
 
-        response = handle_interactive_chat("OpenAI", chat, initial_prompt)
+        response = handle_interactive_chat("openai", chat, initial_prompt)
     else:
         # For single prompt interaction
         prompt = read_content_from_source(read_stdin_if_empty(prompt))
         prompt = process_template_arguments(prompt, template_args)
-        response = handle_single_prompt("OpenAI", prompt)
+        response = handle_single_prompt("openai", prompt)
 
     print(response)
 
