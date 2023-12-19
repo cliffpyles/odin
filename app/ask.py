@@ -85,7 +85,7 @@ def create_chat_banner(service_name, chat_file):
 
 
 # Function to handle interactive chat
-def handle_interactive_chat(service_name, chat_file, initial_prompt):
+def handle_interactive_chat(service_name, chat_file, initial_prompt, model):
     # Print the chat session banner
     print(create_chat_banner(service_name, chat_file))
 
@@ -117,7 +117,7 @@ def handle_interactive_chat(service_name, chat_file, initial_prompt):
                 break
 
             ai_response = plugin.process_interactive_chat(
-                service_name, user_input, chat_history
+                service_name, user_input, chat_history, model
             )
             chat_history.append({"prompt": user_input, "response": ai_response})
             print(ai_response)
@@ -134,10 +134,10 @@ def handle_interactive_chat(service_name, chat_file, initial_prompt):
 
 
 # Function to handle single prompt interaction
-def handle_single_prompt(service_name, prompt):
+def handle_single_prompt(service_name, prompt, model):
     plugin = load_plugin(service_name)
 
-    return plugin.process_single_prompt(service_name, prompt)
+    return plugin.process_single_prompt(service_name, prompt, model)
 
 
 def load_plugin(service_name):
@@ -195,12 +195,12 @@ def bedrock(prompt, model, chat, template_args):
             initial_prompt = read_content_from_source(prompt)
             initial_prompt = process_template_arguments(initial_prompt, template_args)
 
-        response = handle_interactive_chat("Bedrock", chat, initial_prompt)
+        response = handle_interactive_chat("Bedrock", chat, initial_prompt, model)
     else:
         # For single prompt interaction
         prompt = read_content_from_source(read_stdin_if_empty(prompt))
         prompt = process_template_arguments(prompt, template_args)
-        response = handle_single_prompt("Bedrock", prompt)
+        response = handle_single_prompt("Bedrock", prompt, model)
     print(response)
 
 
@@ -232,12 +232,12 @@ def openai(prompt, model, chat, template_args):
             initial_prompt = read_content_from_source(prompt)
             initial_prompt = process_template_arguments(initial_prompt, template_args)
 
-        response = handle_interactive_chat("openai", chat, initial_prompt)
+        response = handle_interactive_chat("openai", chat, initial_prompt, model)
     else:
         # For single prompt interaction
         prompt = read_content_from_source(read_stdin_if_empty(prompt))
         prompt = process_template_arguments(prompt, template_args)
-        response = handle_single_prompt("openai", prompt)
+        response = handle_single_prompt("openai", prompt, model)
 
     print(response)
 
