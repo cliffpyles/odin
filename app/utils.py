@@ -132,7 +132,7 @@ def handle_interactive_chat(service_name, chat_file, initial_prompt, model):
 
 # Function to handle single prompt interaction
 def handle_single_prompt(service_name, prompt, model):
-    plugin = load_plugin(service_name)
+    plugin = load_plugin(service_name.lower())
 
     return plugin.process_single_prompt(service_name, prompt, model)
 
