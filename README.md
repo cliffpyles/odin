@@ -30,7 +30,7 @@ Odin is in active development. Features and functionalities may change, and the 
 To install Odin:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/cliffpyles/odin/main/install_dev.sh)"
+pip install --user odin-cli
 ```
 
 ### Prerequisites
@@ -47,11 +47,11 @@ After installation, use the `ask` binary to interact with AI services.
 
 - Query Bedrock:
   ```bash
-  ask bedrock "Tell me a joke"
+  odin-ask bedrock "Tell me a joke"
   ```
 - Query OpenAI:
   ```bash
-  ask openai "Tell me a fact"
+  odin-ask openai "Tell me a fact"
   ```
 
 ### Detailed Usage Examples
@@ -59,29 +59,29 @@ After installation, use the `ask` binary to interact with AI services.
 #### Interacting with Bedrock
 - **Simple Prompt**:
   ```bash
-  ask bedrock "Tell me a joke"
+  odin-ask bedrock "Tell me a joke"
   ```
 - **File Input**:
   ```bash
-  ask bedrock /path/to/my_query.txt
+  odin-ask bedrock /path/to/my_query.txt
   ```
 - **URL Input**:
   ```bash
-  ask bedrock https://example.com/my_query.txt
+  odin-ask bedrock https://example.com/my_query.txt
   ```
 - **Interactive Chat**:
   ```bash
-  ask bedrock --chat my_chat_history.json
+  odin-ask bedrock --chat my_chat_history.json
   ```
 
 #### Interacting with OpenAI
 - **Simple Query**:
   ```bash
-  ask openai "Tell me a fact"
+  odin-ask openai "Tell me a fact"
   ```
 - **Interactive Chat**:
   ```bash
-  ask openai --chat session_history.json
+  odin-ask openai --chat session_history.json
   ```
 
 ### Passing Variables to Prompts
@@ -92,11 +92,11 @@ Odin CLI allows dynamic content generation in prompts using variables.
 
 - **Single Variable**:
   ```bash
-  ask openai "Translate '{text}' to French" text="Hello, world"
+  odin-ask openai "Translate '{text}' to French" text="Hello, world"
   ```
 - **Multiple Variables**:
   ```bash
-  ask bedrock "What is the weather like in {city} on {date}?" city="Paris" date="2023-07-16"
+  odin-ask bedrock "What is the weather like in {city} on {date}?" city="Paris" date="2023-07-16"
   ```
 
 #### Formatting and Constraints
@@ -110,12 +110,12 @@ Odin CLI allows dynamic content generation in prompts using variables.
 
 | Argument/Option   | Description                                           | Example                                                 |
 |-------------------|-------------------------------------------------------|---------------------------------------------------------|
-| `prompt`          | Text, file path, URL, or S3 path for the prompt.      | `ask openai "Translate '{text}' to French" text="Hello"`|
-| `--model`         | Specifies the AI model.                               | `ask openai --model="gpt-4" "What is AI?"`              |
-| `--chat`          | Initiates interactive chat and specifies history file.| `ask bedrock --chat chat_history.json`                  |
-| `/path/to/file`   | Path to a text file with the prompt.                  | `ask openai /path/to/fact_request.txt`                  |
-| `s3://bucket/file`| S3 path to a file with the prompt.                    | `ask openai s3://mybucket/fact_request.txt`             |
-| `https://url`     | URL to a text file with the prompt.                   | `ask openai https://example.com/fact_request.txt`       |
+| `prompt`          | Text, file path, URL, or S3 path for the prompt.      | `odin-ask openai "Translate '{text}' to French" text="Hello"`|
+| `--model`         | Specifies the AI model.                               | `odin-ask openai --model="gpt-4" "What is AI?"`              |
+| `--chat`          | Initiates interactive chat and specifies history file.| `odin-ask bedrock --chat chat_history.json`                  |
+| `/path/to/file`   | Path to a text file with the prompt.                  | `odin-ask openai /path/to/fact_request.txt`                  |
+| `s3://bucket/file`| S3 path to a file with the prompt.                    | `odin-ask openai s3://mybucket/fact_request.txt`             |
+| `https://url`     | URL to a text file with the prompt.                   | `odin-ask openai https://example.com/fact_request.txt`       |
 
 ## License
 

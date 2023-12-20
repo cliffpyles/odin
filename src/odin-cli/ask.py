@@ -22,5 +22,10 @@ def ask():
 
 load_plugins(ask)
 
-if __name__ == "__main__":
+
+def main():
     ask()
+
+
+if __name__ == "__main__":
+    main()
