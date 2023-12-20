@@ -30,7 +30,7 @@ Odin is in active development. Features and functionalities may change, and the 
 To install Odin:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/cliffpyles/odin/HEAD/dev_install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/cliffpyles/odin/main/install_dev.sh)"
 ```
 
 ### Prerequisites
