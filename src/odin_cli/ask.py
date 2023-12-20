@@ -2,7 +2,7 @@
 
 import click
 import textwrap
-from utils import load_plugins
+from .utils import load_plugins
 
 
 # Define the main CLI group with examples

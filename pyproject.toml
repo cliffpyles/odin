@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "odin-cli"
 description = "An app for interacting with AI services"
-version = "0.0.2"
+dynamic = ["version"]
 authors = [
   { name="Cliff Pyles", email="cliff@cliffpyles.com" },
 ]
@@ -19,20 +19,23 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = ["click", "requests", "boto3", "openai", "prompt_toolkit"]
 
 [project.urls]
 Homepage = "https://github.com/cliffpyles/odin"
 Issues = "https://github.com/cliffpyles/odin/issues"
 
-
 [project.scripts]
-odin-ask = "src.odin-cli.ask:main"
+odin-ask = "odin_cli.ask:main"
 
 [tool.hatch.version]
-source = "src/odin-cli"
+path = "src/odin_cli/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = ["click", "requests", "boto3", "openai", "prompt_toolkit"]
 
+[tool.hatch.build.targets.sdist]
+include = ["src/odin_cli/*.py"]
+
 [tool.hatch.build.targets.wheel]
-packages = ["src/odin-cli"]
+packages = ["src/odin_cli"]
