@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "odin-cli"
 description = "An app for interacting with AI services"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="Cliff Pyles", email="cliff@cliffpyles.com" },
 ]
@@ -23,6 +23,10 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/cliffpyles/odin"
 Issues = "https://github.com/cliffpyles/odin/issues"
+
+
+[project.scripts]
+odin-ask = "src.odin-cli.ask:main"
 
 [tool.hatch.version]
 source = "src/odin-cli"
