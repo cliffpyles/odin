@@ -45,12 +45,7 @@ update_path() {
 }
 
 # Detect the shell and update the configuration file
-if [ -n "$ZSH_VERSION" ]; then
-    update_path "$HOME/.zshrc"
-elif [ -n "$BASH_VERSION" ]; then
-    update_path "$HOME/.bashrc"
-else
-    echo "Unsupported shell. Please add $INSTALL_DIR to your PATH manually."
-fi
+update_path "$HOME/.zshrc"
+update_path "$HOME/.bashrc"
 
 echo "Installation complete. Please restart your terminal or source your shell configuration file to use Odin."
