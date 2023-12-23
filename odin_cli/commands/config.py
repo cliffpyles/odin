@@ -13,10 +13,7 @@ def create_config(args, config):
         print(f"Config directory already exists: {config_dir}")
     if not os.path.exists(config_file):
         # Create a default configuration
-        default_config = {
-            "openai": {"model": "gpt-4"},
-            "bedrock": {"model": "anthropic.claude-v2"},
-        }
+        default_config = {}
         with open(config_file, "w") as file:
             yaml.dump(default_config, file)
         print(f"Config file created: {config_file}")
