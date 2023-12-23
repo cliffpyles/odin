@@ -55,6 +55,19 @@ def read_stdin_if_empty(prompt):
     return prompt
 
 
+def read_stdin_if_piped(prompt, piped, pipe_key):
+    if piped:
+        has_pipe_key = pipe_key != ""
+        piped_content = sys.stdin.read()
+        if has_pipe_key:
+            prompt_key = "{" + pipe_key + "}"
+
+            return prompt.replace(prompt_key, piped_content)
+        else:
+            return f"{piped_content}{prompt}"
+    return prompt
+
+
 # Function to process template arguments
 def process_template_arguments(prompt, template_args):
     for arg in template_args:

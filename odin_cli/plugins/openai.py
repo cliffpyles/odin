@@ -4,7 +4,7 @@ from odin_cli.utils import (
     process_template_arguments,
     handle_interactive_chat,
     handle_single_prompt,
-    read_stdin_if_empty,
+    read_stdin_if_piped,
 )
 
 client = OpenAI()
@@ -50,6 +50,8 @@ def openai_command(args, config):
     prompt = args.prompt
     model = args.model
     chat = args.chat
+    piped = args.piped
+    pipe_key = args.pipe_key
     template_args = args.template_args
 
     if chat:
@@ -60,7 +62,7 @@ def openai_command(args, config):
 
         response = handle_interactive_chat("openai", chat, initial_prompt, model)
     else:
-        prompt = read_content_from_source(read_stdin_if_empty(prompt))
+        prompt = read_content_from_source(read_stdin_if_piped(prompt, piped, pipe_key))
         prompt = process_template_arguments(prompt, template_args)
         response = handle_single_prompt("openai", prompt, model)
 
@@ -79,4 +81,14 @@ def register_ask_args(subparsers, config):
         "--model", default=default_model, help="Specify the model"
     )
     parser_openai.add_argument("--chat", help="Filename of the chat session")
+    parser_openai.add_argument(
+        "--piped",
+        action="store_true",
+        help="Specifies the prompt is receiving input from a piped command",
+    )
+    parser_openai.add_argument(
+        "--pipe-key",
+        default="",
+        help="Specifies the prompt is receiving input from a piped command",
+    )
     parser_openai.set_defaults(func=openai_command)
