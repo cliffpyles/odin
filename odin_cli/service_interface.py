@@ -6,6 +6,6 @@ def process_interactive_chat(service_name, user_input, chat_history, model):
     raise NotImplementedError
 
 
-def register_cli_commands(cli_group):
+def register_argparse_commands(subparsers):
     """Function to register CLI commands for the plugin."""
     raise NotImplementedError

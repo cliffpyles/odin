@@ -137,23 +137,30 @@ def handle_single_prompt(service_name, prompt, model):
     return plugin.process_single_prompt(service_name, prompt, model)
 
 
-def load_plugin(service_name):
+def load_plugin(plugin_name):
     try:
-        plugin = importlib.import_module(f"plugins.{service_name}")
+        plugin = importlib.import_module(f".{plugin_name}", "odin_cli.plugins")
+
         assert hasattr(plugin, "process_single_prompt")
         assert hasattr(plugin, "process_interactive_chat")
+
         return plugin
     except (ImportError, AssertionError):
+        print(ImportError)
+        print(AssertionError)
         raise ImportError(
-            f"Plugin for {service_name} not found or does not conform to the interface."
+            f"Plugin for {plugin_name} not found or does not conform to the interface."
         )
 
 
-def load_plugins(base_command):
-    """Load all plugins and register their CLI commands."""
-    for plugin_path in glob.glob("plugins/*.py"):
+def load_plugins(subparsers):
+    package_directory = os.path.dirname(__file__)
+    plugins_glob = f"{package_directory}/plugins/*.py"
+
+    for plugin_path in glob.glob(plugins_glob):
         plugin_name = os.path.basename(plugin_path)[:-3]
         if plugin_name != "__init__":
             plugin = load_plugin(plugin_name)
-            if hasattr(plugin, "register_cli_commands"):
-                plugin.register_cli_commands(base_command)
+
+            if hasattr(plugin, "register_argparse_commands"):
+                plugin.register_argparse_commands(subparsers)

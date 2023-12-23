@@ -1,41 +1,30 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[project]
+[tool.poetry]
 name = "odin-cli"
+version = "0.0.15"
 description = "An app for interacting with AI services"
-dynamic = ["version"]
-authors = [
-  { name="Cliff Pyles", email="cliff@cliffpyles.com" },
-]
-license = {text = "MIT"}
+authors = ["Cliff Pyles <cliff@cliffpyles.com>"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["click", "requests", "boto3", "openai", "prompt_toolkit"]
-
-[project.urls]
+[tool.poetry.urls]
 Homepage = "https://github.com/cliffpyles/odin"
 Issues = "https://github.com/cliffpyles/odin/issues"
 
-[project.scripts]
-odin-ask = "odin_cli.ask:main"
+[tool.poetry.dependencies]
+python = ">=3.9.0, <4.0.0"
+boto3 = "^1.34.5"
+requests = "^2.31.0"
+openai = "^1.6.0"
+prompt-toolkit = "^3.0.43"
 
-[tool.hatch.version]
-path = "src/odin_cli/__about__.py"
+[tool.poetry.scripts]
+odin = "odin_cli.cli:main"
 
-[tool.hatch.envs.default]
-dependencies = ["click", "requests", "boto3", "openai", "prompt_toolkit"]
-
-[tool.hatch.build.targets.sdist]
-include = ["src/odin_cli/*.py"]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/odin_cli"]
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
