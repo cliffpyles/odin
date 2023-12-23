@@ -6,21 +6,61 @@ from odin_cli.utils import (
     handle_single_prompt,
     read_stdin_if_piped,
 )
+import json
 
 client = OpenAI()
 
 
-def process_single_prompt(service_name, prompt, model="gpt-4"):
+def process_single_prompt_old(service_name, prompt, model="gpt-4"):
     """Process a single prompt using OpenAI."""
     try:
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt},
         ]
-        response = client.chat.completions.create(model=model, messages=messages)
+        max_tokens = None
+        temperature = 0
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
         return response.choices[0].message.content
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+def process_single_prompt(service_name, prompt, model="gpt-4"):
+    """Process a single prompt using OpenAI and log the request and response."""
+    log_entry = {"service_name": service_name, "model": model, "prompt": prompt}
+
+    try:
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt},
+        ]
+        max_tokens = None
+        temperature = 0
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        log_entry["response"] = response.choices[0].message.content
+    except Exception as e:
+        error_message = f"Error: {str(e)}"
+        log_entry["response"] = error_message
+        return error_message
+
+    # Append log entry to file
+    with open(f"{service_name}_log.json", "a") as log_file:
+        log_file.write(json.dumps(log_entry) + "\n")
+
+    return log_entry["response"]
 
 
 def process_interactive_chat(service_name, user_input, chat_history, model="gpt-4"):
