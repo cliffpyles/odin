@@ -1,4 +1,3 @@
-import textwrap
 from openai import OpenAI
 from odin_cli.utils import (
     read_content_from_source,
@@ -47,7 +46,7 @@ def process_interactive_chat(service_name, user_input, chat_history, model="gpt-
         return f"Error: {str(e)}"
 
 
-def openai_command(args):
+def openai_command(args, config):
     prompt = args.prompt
     model = args.model
     chat = args.chat
@@ -68,10 +67,16 @@ def openai_command(args):
     print(response)
 
 
-def register_argparse_commands(subparsers):
+def register_ask_args(subparsers, config):
+    # set default values for arguments
+    default_model = config.get("openai", {}).get("model", "gpt-4")
+
+    # register arguments
     parser_openai = subparsers.add_parser("openai", help="Interact with OpenAI")
     parser_openai.add_argument("prompt", nargs="?", help="Prompt for the command")
     parser_openai.add_argument("template_args", nargs="*", help="Template arguments")
-    parser_openai.add_argument("--model", default="gpt-4", help="Specify the model")
+    parser_openai.add_argument(
+        "--model", default=default_model, help="Specify the model"
+    )
     parser_openai.add_argument("--chat", help="Filename of the chat session")
     parser_openai.set_defaults(func=openai_command)

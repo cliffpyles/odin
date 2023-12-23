@@ -3,6 +3,7 @@ import os
 import requests
 import boto3
 import json
+import yaml
 from urllib.parse import urlparse
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -137,30 +138,39 @@ def handle_single_prompt(service_name, prompt, model):
     return plugin.process_single_prompt(service_name, prompt, model)
 
 
+def load_config():
+    config_paths = [
+        os.path.expanduser("~/.config/odin/odin.yaml"),
+        os.path.expanduser("~/.config/odin/odin.yml"),
+    ]
+
+    for path in config_paths:
+        if os.path.exists(path):
+            with open(path, "r") as file:
+                return yaml.safe_load(file)
+
+    return {}  # Return an empty config if no file is found
+
+
 def load_plugin(plugin_name):
     try:
         plugin = importlib.import_module(f".{plugin_name}", "odin_cli.plugins")
 
-        assert hasattr(plugin, "process_single_prompt")
-        assert hasattr(plugin, "process_interactive_chat")
-
         return plugin
     except (ImportError, AssertionError):
-        print(ImportError)
-        print(AssertionError)
         raise ImportError(
             f"Plugin for {plugin_name} not found or does not conform to the interface."
         )
 
 
-def load_plugins(subparsers):
+def load_plugins(subparsers, config):
     package_directory = os.path.dirname(__file__)
     plugins_glob = f"{package_directory}/plugins/*.py"
 
+    plugins = []
     for plugin_path in glob.glob(plugins_glob):
         plugin_name = os.path.basename(plugin_path)[:-3]
         if plugin_name != "__init__":
             plugin = load_plugin(plugin_name)
-
-            if hasattr(plugin, "register_argparse_commands"):
-                plugin.register_argparse_commands(subparsers)
+            plugins.append(plugin)
+    return plugins

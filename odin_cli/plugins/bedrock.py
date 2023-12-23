@@ -1,4 +1,3 @@
-import textwrap
 import json
 import boto3
 from odin_cli.utils import (
@@ -41,7 +40,7 @@ def process_interactive_chat(
         return f"Error: {str(e)}"
 
 
-def bedrock_command(args):
+def bedrock_command(args, config):
     prompt = args.prompt
     model = args.model
     chat = args.chat
@@ -62,14 +61,18 @@ def bedrock_command(args):
     print(response)
 
 
-def register_argparse_commands(subparsers):
+def register_ask_args(subparsers, config):
+    # set default values for arguments
+    default_model = config.get("bedrock", {}).get("model", "anthropic.claude-v2")
+
+    # register arguments
     parser_bedrock = subparsers.add_parser(
         "bedrock", help="Interact with Amazon Bedrock"
     )
     parser_bedrock.add_argument("prompt", nargs="?", help="Prompt for the command")
     parser_bedrock.add_argument("template_args", nargs="*", help="Template arguments")
     parser_bedrock.add_argument(
-        "--model", default="anthropic.claude-v2", help="Specify the model"
+        "--model", default=default_model, help="Specify the model"
     )
     parser_bedrock.add_argument("--chat", help="Filename of the chat session")
     parser_bedrock.set_defaults(func=bedrock_command)
