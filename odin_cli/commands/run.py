@@ -1,9 +1,12 @@
 import json
 import re
-from datetime import datetime
 from openai import OpenAI
 import frontmatter
 import odin_cli.tools as tools
+import logging
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Initialize the OpenAI client
 client = OpenAI()
@@ -82,12 +85,26 @@ def get_chat_items(chat, sort=None, **filters):
 
 
 # Function to append logs to a log file
-def append_log(file_path, event_type="INFO", message=""):
-    current_timestamp = str(datetime.now())
+def log_event(event_type="INFO", message="", context=None):
+    # Map event_type to logging levels
     event_type = event_type.upper()
-    inline_message = message.encode("unicode_escape").decode("utf-8")
-    with open(file_path, "a") as log_file:
-        log_file.write(f"{current_timestamp} {event_type} {inline_message}\n")
+    # inline_message = message.encode("unicode_escape").decode("utf-8")
+
+    log_level = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }.get(event_type, logging.INFO)
+    log_message = {
+        "event_type": event_type,
+        "message": message,
+        "context": context,
+    }
+
+    # Log the message at the appropriate level
+    logger.log(log_level, json.dumps(log_message))
 
 
 # Function to save a response to a file
@@ -103,16 +120,24 @@ def send_messages(messages, thread, template_variables, output_dir):
     # processing responses, and saving logs and outputs.
     thread_metadata = thread.get("metadata", {})
     thread_id = thread_metadata.get("id")
-    thread_log = thread_metadata.get("log_file")
-    append_log(thread_log, "CHAT_STARTED", thread_id)
-    append_log(
-        thread_log, "CHAT_RECEIVED_TEMPLATE_VARIABLES", json.dumps(template_variables)
+    log_event(
+        message="chat started",
+        context={
+            "thread_id": thread_id,
+        },
+    )
+    log_event(
+        message="received template variables",
+        context={"thread_id": thread_id, "template_variables": template_variables},
     )
     try:
         system_context = thread.get("content", "").strip()
         system_context = process_template(system_context, template_variables)
 
-        append_log(thread_log, "CHAT_SYSTEM_CONTEXT_PROCESSED", system_context)
+        log_event(
+            message="system context processed",
+            context={"thread_id": thread_id, "system_context": system_context},
+        )
 
         current_chat = [{"role": "system", "content": system_context}]
 
@@ -127,19 +152,30 @@ def send_messages(messages, thread, template_variables, output_dir):
             output_file = metadata.get("output_file", f"{thread_id}/{id}.md")
             content = message.get("content", "").strip()
             if disabled:
-                append_log(
-                    thread_log,
-                    "CHAT_MESSAGE_SKIPPED",
-                    f"Thread: {thread_id} Message: {id}",
+                log_event(
+                    message="message skipped",
+                    context={"thread_id": thread_id, "message_id": id},
                 )
                 continue
-            append_log(
-                thread_log,
-                "CHAT_MESSAGE_STARTED",
-                f"Thread: {thread_id} Message: {id} Model: {model} Temperature: {temperature} Content: {content}",
+            log_event(
+                message="message started",
+                context={
+                    "thread_id": thread_id,
+                    "message_id": id,
+                    "model": model,
+                    "temperature": temperature,
+                    "content": content,
+                },
             )
             content = process_template(content, template_variables)
-            append_log(thread_log, "CHAT_MESSAGE_CONTENT_PROCESSED", content)
+            log_event(
+                message="message content processed",
+                context={
+                    "thread_id": thread_id,
+                    "message_id": id,
+                    "content": content,
+                },
+            )
             current_chat.append({"role": "user", "content": content})
             print(f"\nMessage:\n\n{content}")
 
@@ -158,10 +194,16 @@ def send_messages(messages, thread, template_variables, output_dir):
                 **tool_args,
             )
 
-            append_log(
-                thread_log,
-                "CHAT_MESSAGE_RESPONSE_RECEIVED",
-                response.model_dump_json(exclude_unset=True),
+            log_event(
+                message="message response received",
+                context={
+                    "thread_id": thread_id,
+                    "message_id": id,
+                    "model": model,
+                    "temperature": temperature,
+                    "content": content,
+                    "response": response.model_dump(exclude_unset=True),
+                },
             )
 
             if response_handler:
@@ -177,29 +219,41 @@ def send_messages(messages, thread, template_variables, output_dir):
                         "content": tool_response,
                     }
                     current_chat.append(chat_item)
-                    append_log(
-                        thread_log, "CHAT_MESSAGE_TOOL_EXECUTED", json.dumps(chat_item)
+                    log_event(
+                        message="message tool executed",
+                        context={
+                            "thread_id": thread_id,
+                            "message_id": id,
+                            "tool": chat_item,
+                        },
                     )
             else:
                 response_content = response.choices[0].message.content
                 print(f"\nResponse:\n\n{response_content}\n\n---\n")
                 current_chat.append({"role": "assistant", "content": response_content})
                 save_response(f"{output_dir}/{output_file}", response_content)
-                append_log(
-                    thread_log,
-                    "CHAT_MESSAGE_OUTPUT_SAVED",
-                    f"{output_dir}/{output_file}",
+                log_event(
+                    message="message output saved",
+                    context={
+                        "thread_id": thread_id,
+                        "message_id": id,
+                        "output_path": f"{output_dir}/{output_file}",
+                    },
                 )
 
-        append_log(thread_log, "CHAT_COMPLETED", thread_id)
+        log_event(
+            message="chat completed",
+            context={"thread_id": thread_id},
+        )
+
         return response
     except Exception as e:
         error_message = f"Error: {str(e)}"
 
-        append_log(
-            thread_log,
-            "CHAT_ERRORED",
-            f"{thread_id} {error_message}",
+        log_event(
+            event_type="ERROR",
+            message="chat errored",
+            context={"thread_id": thread_id, "error_message": error_message},
         )
         return error_message
 
@@ -209,6 +263,15 @@ def run_chat(args, config):
     file_path = args.file_path
     template_variables = args.template_variables
     output = args.output
+    log_level = args.log_level.upper() if args.log_level else "INFO"
+    log_file = args.log_file
+
+    logging.basicConfig(
+        level=log_level,
+        filename=log_file,
+        filemode="a",
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
 
     chat = open_chat(file_path)
     thread = get_chat_items(chat, type="thread")[0]

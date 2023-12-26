@@ -10,6 +10,17 @@ from odin_cli.commands.run import setup_run_command
 def main():
     config = load_config()
     parser = argparse.ArgumentParser(prog="odin")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
+    parser.add_argument(
+        "--log-file",
+        default="odin.log",
+        help="Path to the log file.",
+    )
+
     subparsers = parser.add_subparsers(help="Commands")
     plugins = load_plugins(subparsers, config)
     setup_config_command(subparsers, config, plugins)
