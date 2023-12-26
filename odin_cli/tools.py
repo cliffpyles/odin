@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 
 
+# Function to save content to a file
 def save_file(path: str, content: str):
     file_path = Path(path)
 

@@ -5,26 +5,34 @@ from openai import OpenAI
 import frontmatter
 import odin_cli.tools as tools
 
-
+# Initialize the OpenAI client
 client = OpenAI()
 
 
+# Function to execute a tool from the tools module
 def execute_tool(tool_call):
     try:
+        # Extract function name and arguments from the tool call
         func_name = tool_call["function"]["name"]
         arguments = json.loads(tool_call["function"]["arguments"])
 
+        # Get the function from the tools module
         func = getattr(tools, func_name, None)
         if not func:
+            # Raise an error if the function is not found
             raise ValueError(f"Function '{func_name}' not found in tools module.")
 
+        # Execute the function with the provided arguments
         return func(**arguments)
     except KeyError as e:
+        # Handle missing keys in the tool call object
         raise ValueError(f"Key error in the object structure: {e}")
     except json.JSONDecodeError as e:
+        # Handle JSON parsing errors
         raise ValueError(f"Error in parsing arguments: {e}")
 
 
+# Function to process template variables in a string
 def process_template(template, template_variables):
     for variable in template_variables:
         key, value = variable.split("=")
@@ -32,25 +40,24 @@ def process_template(template, template_variables):
     return template
 
 
+# Function to open a YAML file and parse its contents
 def open_chat(file_path):
     with open(file_path, "r") as file:
         content = file.read()
 
-    # Regex Pattern Explanation:
-    # - (---\n(?:.*?:.*?\n)+---): Matches frontmatter enclosed in '---'.
-    # - ([\s\S]*?): Non-greedy capture of content after frontmatter.
-    # - (?=\n---|$): Stops at next frontmatter or end of file.
+    # Define regex pattern to extract frontmatter and content
     pattern = r"(---\n(?:.*?:.*?\n)+---)([\s\S]*?)(?=\n---|$)"
 
-    # Find all matches of the pattern in the content
+    # Find all sections in the file that match the pattern
     matches = re.findall(pattern, content)
     parsed_documents = {}
 
-    # Iterate over the matches and parse them
+    # Parse each section and extract its frontmatter and content
     for frontmatter_str, content_str in matches:
         parsed_doc = frontmatter.loads(frontmatter_str + "\n" + content_str)
         doc_id = parsed_doc.metadata.get("id", None)
         if doc_id:
+            # Store the parsed document using its ID
             parsed_documents[doc_id] = {
                 "metadata": parsed_doc.metadata,
                 "content": parsed_doc.content.strip(),
@@ -59,21 +66,22 @@ def open_chat(file_path):
     return parsed_documents
 
 
+# Function to filter and sort chat items based on metadata
 def get_chat_items(chat, sort=None, **filters):
-    # Filter items based on provided keyword arguments
     items = [
         doc
         for doc in chat.values()
         if all(doc["metadata"].get(key) == value for key, value in filters.items())
     ]
 
-    # Sort items by the specified field if provided
+    # Sort the items if a sort key is provided
     if sort:
         items.sort(key=lambda x: x["metadata"].get(sort, float("inf")))
 
     return items
 
 
+# Function to append logs to a log file
 def append_log(file_path, event_type="INFO", message=""):
     current_timestamp = str(datetime.now())
     event_type = event_type.upper()
@@ -82,12 +90,17 @@ def append_log(file_path, event_type="INFO", message=""):
         log_file.write(f"{current_timestamp} {event_type} {inline_message}\n")
 
 
+# Function to save a response to a file
 def save_response(file_path, content):
     with open(file_path, "w") as file:
         file.write(content)
 
 
+# Function to send messages and handle responses
 def send_messages(messages, thread, template_variables, output_dir):
+    # This function is quite long and contains multiple sub-functions and complex logic.
+    # It handles the logic of processing messages, sending them to the OpenAI API,
+    # processing responses, and saving logs and outputs.
     thread_metadata = thread.get("metadata", {})
     thread_id = thread_metadata.get("id")
     thread_log = thread_metadata.get("log_file")
@@ -191,6 +204,7 @@ def send_messages(messages, thread, template_variables, output_dir):
         return error_message
 
 
+# Main function to run the chat process
 def run_chat(args, config):
     file_path = args.file_path
     template_variables = args.template_variables
@@ -202,6 +216,7 @@ def run_chat(args, config):
     response = send_messages(messages, thread, template_variables, output)
 
 
+# Function to set up the 'run' command in a CLI environment
 def setup_run_command(subparsers, config, plugins):
     run_parser = subparsers.add_parser("run", help="Execute a specification")
     run_parser.add_argument("file_path", nargs="?", help="File path for chat to invoke")
