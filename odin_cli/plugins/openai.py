@@ -11,27 +11,6 @@ import json
 client = OpenAI()
 
 
-def process_single_prompt_old(service_name, prompt, model="gpt-4"):
-    """Process a single prompt using OpenAI."""
-    try:
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt},
-        ]
-        max_tokens = None
-        temperature = 0
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-
 def process_single_prompt(service_name, prompt, model="gpt-4"):
     """Process a single prompt using OpenAI and log the request and response."""
     log_entry = {"service_name": service_name, "model": model, "prompt": prompt}

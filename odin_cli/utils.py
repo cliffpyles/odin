@@ -4,12 +4,14 @@ import requests
 import boto3
 import json
 import yaml
+import re
 from urllib.parse import urlparse
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 import importlib
 import datetime
 import glob
+import frontmatter
 
 
 # Function to determine if a string is a valid URL
@@ -74,6 +76,48 @@ def process_template_arguments(prompt, template_args):
         key, value = arg.split("=")
         prompt = prompt.replace(f"{{{key}}}", value)
     return prompt
+
+
+def open_chat(file_path):
+    with open(file_path, "r") as file:
+        content = file.read()
+
+    # Regex Pattern Explanation:
+    # - (---\n(?:.*?:.*?\n)+---): Matches frontmatter enclosed in '---'.
+    # - ([\s\S]*?): Non-greedy capture of content after frontmatter.
+    # - (?=\n---|$): Stops at next frontmatter or end of file.
+    pattern = r"(---\n(?:.*?:.*?\n)+---)([\s\S]*?)(?=\n---|$)"
+
+    # Find all matches of the pattern in the content
+    matches = re.findall(pattern, content)
+    parsed_documents = {}
+
+    # Iterate over the matches and parse them
+    for frontmatter_str, content_str in matches:
+        parsed_doc = frontmatter.loads(frontmatter_str + "\n" + content_str)
+        doc_id = parsed_doc.metadata.get("id", None)
+        if doc_id:
+            parsed_documents[doc_id] = {
+                "metadata": parsed_doc.metadata,
+                "content": parsed_doc.content.strip(),
+            }
+
+    return parsed_documents
+
+
+def get_chat_items(chat, sort=None, **filters):
+    # Filter items based on provided keyword arguments
+    items = [
+        doc
+        for doc in chat.values()
+        if all(doc["metadata"].get(key) == value for key, value in filters.items())
+    ]
+
+    # Sort items by the specified field if provided
+    if sort:
+        items.sort(key=lambda x: x["metadata"].get(sort, float("inf")))
+
+    return items
 
 
 def create_chat_banner(service_name, chat_file):

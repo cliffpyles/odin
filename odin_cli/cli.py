@@ -4,6 +4,7 @@ import argparse
 from odin_cli.utils import load_config, load_plugins
 from odin_cli.commands.ask import setup_ask_command
 from odin_cli.commands.config import setup_config_command
+from odin_cli.commands.run import setup_run_command
 
 
 def main():
@@ -13,6 +14,7 @@ def main():
     plugins = load_plugins(subparsers, config)
     setup_config_command(subparsers, config, plugins)
     setup_ask_command(subparsers, config, plugins)
+    setup_run_command(subparsers, config, plugins)
 
     # Parse the arguments
     args = parser.parse_args()
