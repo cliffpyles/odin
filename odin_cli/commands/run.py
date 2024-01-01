@@ -1,9 +1,53 @@
 import json
 import re
+from datetime import datetime
+import logging
+import time
 from openai import OpenAI
 import frontmatter
 import odin_cli.tools as tools
-import logging
+
+
+class MessagePrinter:
+    def __init__(self, verbosity_level):
+        self.verbosity_level = verbosity_level
+
+    def print_header(self, role, message_number, total_messages, model):
+        timestamp = datetime.now().strftime("%m-%d-%Y %H:%M:%S")
+        role = role.upper()
+        progress = f"Message {message_number} of {total_messages}"
+        content = f"{role} [{timestamp}] | {progress} [{model}]"
+        divider = "▓" * int(((120 - len(content)) / 2) - 2)
+
+        print(f"\n{divider} {content} {divider}\n")
+
+    def print_content(self, message, role=""):
+        colors = {
+            "info": "\033[94m",
+            "assistant": "\033[94m",
+            "user": "\033[95m",
+            "warning": "\033[93m",
+            "error": "\033[91m",
+            "default": "\033[0m",
+        }
+        if role in colors:
+            colored_msg = f"{colors[role]}{message}{colors['default']}"
+        else:
+            colored_msg = message
+
+        print(colored_msg)
+
+    def print_footer(self, response_time, model, token_metrics):
+        content = (
+            f"Model: {model} | "
+            + f"Duration: {int(response_time)}s | "
+            + f"Prompt: {token_metrics['prompt_tokens']} tokens | "
+            + f"Completion: {token_metrics['completion_tokens']} tokens"
+        )
+        divider = "░" * int(((120 - len(content)) / 2) - 2)
+
+        print(f"\n{divider} {content} {divider}\n")
+
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -114,10 +158,7 @@ def save_response(file_path, content):
 
 
 # Function to send messages and handle responses
-def send_messages(messages, thread, template_variables, output_dir):
-    # This function is quite long and contains multiple sub-functions and complex logic.
-    # It handles the logic of processing messages, sending them to the OpenAI API,
-    # processing responses, and saving logs and outputs.
+def send_messages(messages, thread, template_variables, output_dir, printer):
     thread_metadata = thread.get("metadata", {})
     thread_id = thread_metadata.get("id")
     log_event(
@@ -138,10 +179,11 @@ def send_messages(messages, thread, template_variables, output_dir):
             message="system context processed",
             context={"thread_id": thread_id, "system_context": system_context},
         )
-
+        chat_start_time = time.time()
         current_chat = [{"role": "system", "content": system_context}]
-
-        for message in messages:
+        total_messages = len(messages)
+        for index, message in enumerate(messages):
+            message_start_time = time.time()
             metadata = message.get("metadata", {})
             disabled = metadata.get("disabled", False)
             id = metadata.get("id")
@@ -151,6 +193,7 @@ def send_messages(messages, thread, template_variables, output_dir):
             response_handler = metadata.get("response_handler")
             output_file = metadata.get("output_file", f"{thread_id}/{id}.md")
             content = message.get("content", "").strip()
+
             if disabled:
                 log_event(
                     message="message skipped",
@@ -177,7 +220,13 @@ def send_messages(messages, thread, template_variables, output_dir):
                 },
             )
             current_chat.append({"role": "user", "content": content})
-            print(f"\nMessage:\n\n{content}")
+            printer.print_header(
+                role="user",
+                message_number=index + 1,
+                total_messages=total_messages,
+                model=model,
+            )
+            printer.print_content(content, role="user")
 
             tool_args = {}
             if response_handler:
@@ -193,6 +242,7 @@ def send_messages(messages, thread, template_variables, output_dir):
                 temperature=temperature,
                 **tool_args,
             )
+            response_model = response.model_dump(exclude_unset=True)
 
             log_event(
                 message="message response received",
@@ -202,13 +252,11 @@ def send_messages(messages, thread, template_variables, output_dir):
                     "model": model,
                     "temperature": temperature,
                     "content": content,
-                    "response": response.model_dump(exclude_unset=True),
+                    "response": response_model,
                 },
             )
 
             if response_handler:
-                print(f"\nExecuting: {response_handler}\n\n---\n")
-                response_model = response.model_dump(exclude_unset=True)
                 tool_calls = response_model["choices"][0]["message"]["tool_calls"]
                 for tool_call in tool_calls:
                     tool_response = execute_tool(tool_call)
@@ -227,9 +275,12 @@ def send_messages(messages, thread, template_variables, output_dir):
                             "tool": chat_item,
                         },
                     )
+                message_end_time = time.time()
+                response_time = message_end_time - message_start_time
+                token_metrics = response_model["usage"]
+                printer.print_footer(response_time, model, token_metrics)
             else:
                 response_content = response.choices[0].message.content
-                print(f"\nResponse:\n\n{response_content}\n\n---\n")
                 current_chat.append({"role": "assistant", "content": response_content})
                 save_response(f"{output_dir}/{output_file}", response_content)
                 log_event(
@@ -240,12 +291,18 @@ def send_messages(messages, thread, template_variables, output_dir):
                         "output_path": f"{output_dir}/{output_file}",
                     },
                 )
+                message_end_time = time.time()
+                response_time = message_end_time - message_start_time
+                token_metrics = response_model["usage"]
+                printer.print_content(response_content, role="assistant")
+                printer.print_footer(response_time, model, token_metrics)
 
+        chat_end_time = time.time()
         log_event(
             message="chat completed",
             context={"thread_id": thread_id},
         )
-
+        print(f"\nTotal Duration: {int(chat_end_time - chat_start_time)}s\n")
         return response
     except Exception as e:
         error_message = f"Error: {str(e)}"
@@ -255,6 +312,7 @@ def send_messages(messages, thread, template_variables, output_dir):
             message="chat errored",
             context={"thread_id": thread_id, "error_message": error_message},
         )
+
         return error_message
 
 
@@ -265,6 +323,9 @@ def run_chat(args, config):
     output = args.output
     log_level = args.log_level.upper() if args.log_level else "INFO"
     log_file = args.log_file
+    verbosity_level = (
+        "silent" if args.silent else ("verbose" if args.verbose else "standard")
+    )
 
     logging.basicConfig(
         level=log_level,
@@ -273,10 +334,11 @@ def run_chat(args, config):
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
 
+    printer = MessagePrinter(verbosity_level)
     chat = open_chat(file_path)
     thread = get_chat_items(chat, type="thread")[0]
     messages = get_chat_items(chat, type="message", sort="order")
-    response = send_messages(messages, thread, template_variables, output)
+    response = send_messages(messages, thread, template_variables, output, printer)
 
 
 # Function to set up the 'run' command in a CLI environment
@@ -288,6 +350,16 @@ def setup_run_command(subparsers, config, plugins):
     )
     run_parser.add_argument(
         "--output", default=".", help="Directory path for the output"
+    )
+    run_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output in the standard output.",
+    )
+    run_parser.add_argument(
+        "--silent",
+        action="store_true",
+        help="Disable all output to the standard output.",
     )
 
     run_parser.set_defaults(func=run_chat)
