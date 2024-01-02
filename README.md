@@ -6,6 +6,8 @@ Odin is a command-line interface (CLI) application designed to interact with var
 
 Odin is in active development. Features and functionalities may change, and the tool is not yet fully stable. Users should be aware of potential risks in its use.
 
+The main purpose of this project is to experiment with various workflows for interacting with AI services. Because of the explorative nature, the tool it is not stable.
+
 ## Table of Contents
 
 - [Features](#features)
