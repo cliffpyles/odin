@@ -55,6 +55,8 @@ logger = logging.getLogger(__name__)
 # Initialize the OpenAI client
 client = OpenAI()
 
+IMAGE_MODELS = ["dall-e-2", "dall-e-3"]
+
 
 # Function to execute a tool from the tools module
 def execute_tool(tool_call):
@@ -189,6 +191,7 @@ def send_messages(messages, thread, template_variables, output_dir, printer):
             id = metadata.get("id")
             thread_id = metadata.get("thread_id")
             model = metadata.get("model", "gpt-4")
+            max_tokens = metadata.get("max_tokens", None)
             temperature = metadata.get("temperature", 0)
             response_handler = metadata.get("response_handler")
             output_file = metadata.get("output_file", f"{thread_id}/{id}.md")
@@ -236,10 +239,10 @@ def send_messages(messages, thread, template_variables, output_dir, printer):
                 }
 
             response = client.chat.completions.create(
-                max_tokens=None,
                 model=model,
                 messages=current_chat,
                 temperature=temperature,
+                max_tokens=max_tokens,
                 **tool_args,
             )
             response_model = response.model_dump(exclude_unset=True)
@@ -306,7 +309,7 @@ def send_messages(messages, thread, template_variables, output_dir, printer):
         return response
     except Exception as e:
         error_message = f"Error: {str(e)}"
-
+        print(error_message)
         log_event(
             event_type="ERROR",
             message="chat errored",
